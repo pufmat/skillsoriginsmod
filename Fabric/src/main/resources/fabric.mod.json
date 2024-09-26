@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"id": "puffish_skills_origins",
+	"version": "${version}",
+	"name": "Pufferfish's Skills x Origins",
+	"description": "Adds compatibility between Pufferfish's Skills and Origins.",
+	"authors": [
+		"Pufferfish"
+	],
+	"license": "LGPL-3.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.puffish.skillsoriginsmod.main.FabricMain"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.14.21",
+		"fabric-api": "*",
+		"minecraft": "~1.20",
+		"java": ">=17",
+		"puffish_skills": ">=0.13.2",
+		"origins": ">=1.10.0"
+	}
+}

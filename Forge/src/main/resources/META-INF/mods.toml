@@ -1,0 +1,35 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="LGPL-3.0"
+
+[[mods]]
+modId="puffish_skills_origins"
+version="${version}"
+displayName="Pufferfish's Skills x Origins"
+authors="Pufferfish"
+description="Adds compatibility between Pufferfish's Skills and Origins."
+
+[[dependencies.puffish_skills_origins]]
+modId="forge"
+mandatory=true
+versionRange="[47,)"
+
+[[dependencies.puffish_skills_origins]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+
+[[dependencies.puffish_skills_origins]]
+modId="origins"
+mandatory=true
+versionRange="[1.10.0,)"
+
+[[dependencies.puffish_skills_origins]]
+modId="origins"
+mandatory=true
+versionRange="[1.10.0,)"
+
+[[dependencies.puffish_skills_origins]]
+modId="puffish_skills"
+mandatory=true
+versionRange="[0.14.0,)"
