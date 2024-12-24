@@ -12,13 +12,17 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.puffish.skillsmod.api.SkillsAPI;
 import net.puffish.skillsoriginsmod.SkillsOriginsMod;
 import net.puffish.skillsoriginsmod.origins.UnlockCategoryPower;
+import net.puffish.skillsoriginsmod.skills.ChangePowerReward;
 import net.puffish.skillsoriginsmod.skills.PowerReward;
+import net.puffish.skillsoriginsmod.skills.RemovePowerReward;
 
 @Mod(SkillsOriginsMod.MOD_ID)
 public class ForgeMain {
 
 	public ForgeMain() {
 		PowerReward.register();
+		RemovePowerReward.register();
+		ChangePowerReward.register();
 
 		var forgeEventBus = MinecraftForge.EVENT_BUS;
 		forgeEventBus.addListener(this::onPlayerLoggedIn);
@@ -43,6 +47,8 @@ public class ForgeMain {
 				}
 			});
 			SkillsAPI.updateRewards(player, PowerReward.ID);
+			SkillsAPI.updateRewards(player, RemovePowerReward.ID);
+			SkillsAPI.updateRewards(player, ChangePowerReward.ID);
 		}
 	}
 }
