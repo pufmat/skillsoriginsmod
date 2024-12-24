@@ -23,10 +23,12 @@ public class PowerReward implements Reward {
 	public static final Identifier ID = SkillsOriginsMod.createIdentifier("power");
 
 	private final PowerType<?> powerType;
+	private final String operation;
 	private final Identifier source;
 
-	private PowerReward(PowerType<?> powerType, Identifier source) {
+	private PowerReward(PowerType<?> powerType, String operation, Identifier source) {
 		this.powerType = powerType;
+		this.operation = operation;
 		this.source = source;
 	}
 
@@ -37,10 +39,10 @@ public class PowerReward implements Reward {
 	private static Result<PowerReward, Problem> parse(RewardConfigContext context) {
 		return context.getData()
 				.andThen(JsonElement::getAsObject)
-				.andThen(rootObject -> rootObject.noUnused(PowerReward::parse));
+				.andThen(rootObject -> rootObject.noUnused(o -> parse(o, context)));
 	}
 
-	private static Result<PowerReward, Problem> parse(JsonObject rootObject) {
+	private static Result<PowerReward, Problem> parse(JsonObject rootObject, RewardConfigContext context) {
 		var problems = new ArrayList<Problem>();
 
 		var optPower = rootObject.get("power")
@@ -48,9 +50,15 @@ public class PowerReward implements Reward {
 				.ifFailure(problems::add)
 				.getSuccess();
 
+		var optOperation = rootObject.get("operation")
+				.andThen(PowerReward::parseOperation)
+				.ifFailure(problems::add)
+				.getSuccess();
+
 		if (problems.isEmpty()) {
 			return Result.success(new PowerReward(
 					optPower.orElseThrow(),
+					optOperation.orElseThrow(),
 					SkillsOriginsMod.createIdentifier(RandomStringUtils.random(16, "abcdefghijklmnopqrstuvwxyz0123456789"))
 			));
 		} else {
@@ -70,13 +78,27 @@ public class PowerReward implements Reward {
 				});
 	}
 
+	private static Result<String, Problem> parseOperation(JsonElement element) {
+		return element.getAsString()
+				.mapFailure(problem -> element.getPath().createProblem("Expected operation \"add\" or \"remove\""))
+				.andThen(operation -> {
+					if (operation.equals("add") || operation.equals("remove")) {
+						return Result.success(operation);
+					} else {
+						return Result.failure(element.getPath().createProblem("Unknown operation `" + operation + "`"));
+					}
+				});
+	}
+
 	@Override
 	public void update(RewardUpdateContext context) {
 		var component = PowerHolderComponent.KEY.get(context.getPlayer());
 		if (context.getCount() > 0) {
-			component.addPower(powerType, source);
-		} else {
-			component.removePower(powerType, source);
+			if (operation.equals("add")) {
+				component.addPower(powerType, source);
+			} else {
+				component.removePower(powerType, source);
+			}
 		}
 		component.sync();
 	}
@@ -85,9 +107,12 @@ public class PowerReward implements Reward {
 	public void dispose(RewardDisposeContext context) {
 		for (var player : context.getServer().getPlayerManager().getPlayerList()) {
 			var component = PowerHolderComponent.KEY.get(player);
-			component.removePower(powerType, source);
+			if (operation.equals("add")) {
+				component.removePower(powerType, source);
+			} else {
+				component.addPower(powerType, source);
+			}
 			component.sync();
 		}
 	}
-
 }

@@ -25,10 +25,12 @@ public class PowerReward implements Reward {
 	public static final Identifier ID = SkillsOriginsMod.createIdentifier("power");
 
 	private final RegistryKey<ConfiguredPower<?, ?>> powerKey;
+	private final String operation;
 	private final Identifier source;
 
-	private PowerReward(RegistryKey<ConfiguredPower<?, ?>> powerKey, Identifier source) {
+	private PowerReward(RegistryKey<ConfiguredPower<?, ?>> powerKey, String operation, Identifier source) {
 		this.powerKey = powerKey;
+		this.operation = operation;
 		this.source = source;
 	}
 
@@ -50,9 +52,15 @@ public class PowerReward implements Reward {
 				.ifFailure(problems::add)
 				.getSuccess();
 
+		var optOperation = rootObject.get("operation")
+				.andThen(PowerReward::parseOperation)
+				.ifFailure(problems::add)
+				.getSuccess();
+
 		if (problems.isEmpty()) {
 			return Result.success(new PowerReward(
 					optPower.orElseThrow(),
+					optOperation.orElseThrow(),
 					SkillsOriginsMod.createIdentifier(RandomStringUtils.random(16, "abcdefghijklmnopqrstuvwxyz0123456789"))
 			));
 		} else {
@@ -72,13 +80,27 @@ public class PowerReward implements Reward {
 				});
 	}
 
+	private static Result<String, Problem> parseOperation(JsonElement element) {
+		return element.getAsString()
+				.mapFailure(problem -> element.getPath().createProblem("Expected operation \"add\" or \"remove\""))
+				.andThen(operation -> {
+					if (operation.equals("add") || operation.equals("remove")) {
+						return Result.success(operation);
+					} else {
+						return Result.failure(element.getPath().createProblem("Unknown operation `" + operation + "`"));
+					}
+				});
+	}
+
 	@Override
 	public void update(RewardUpdateContext context) {
 		IPowerContainer.get(context.getPlayer()).ifPresent(component -> {
 			if (context.getCount() > 0) {
-				component.addPower(powerKey, source);
-			} else {
-				component.removePower(powerKey, source);
+				if (operation.equals("add")) {
+					component.addPower(powerKey, source);
+				} else {
+					component.removePower(powerKey, source);
+				}
 			}
 			component.sync();
 		});
@@ -88,10 +110,13 @@ public class PowerReward implements Reward {
 	public void dispose(RewardDisposeContext context) {
 		for (var player : context.getServer().getPlayerManager().getPlayerList()) {
 			IPowerContainer.get(player).ifPresent(component -> {
-				component.removePower(powerKey, source);
+				if (operation.equals("add")) {
+					component.removePower(powerKey, source);
+				} else {
+					component.addPower(powerKey, source);
+				}
 				component.sync();
 			});
 		}
 	}
-
 }

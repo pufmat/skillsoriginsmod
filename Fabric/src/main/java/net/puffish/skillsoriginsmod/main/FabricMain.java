@@ -8,17 +8,13 @@ import net.minecraft.registry.Registry;
 import net.puffish.skillsmod.api.SkillsAPI;
 import net.puffish.skillsoriginsmod.SkillsOriginsMod;
 import net.puffish.skillsoriginsmod.origins.UnlockCategoryPower;
-import net.puffish.skillsoriginsmod.skills.ChangePowerReward;
 import net.puffish.skillsoriginsmod.skills.PowerReward;
-import net.puffish.skillsoriginsmod.skills.RemovePowerReward;
 
 public class FabricMain implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
 		PowerReward.register();
-		RemovePowerReward.register();
-		ChangePowerReward.register();
 
 		Registry.register(
 				ApoliRegistries.POWER_FACTORY,
@@ -36,8 +32,6 @@ public class FabricMain implements ModInitializer {
 				}
 			}
 			SkillsAPI.updateRewards(handler.getPlayer(), PowerReward.ID);
-			SkillsAPI.updateRewards(handler.getPlayer(), RemovePowerReward.ID);
-			SkillsAPI.updateRewards(handler.getPlayer(), ChangePowerReward.ID);
 		});
 	}
 
