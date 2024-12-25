@@ -18,7 +18,7 @@ import net.puffish.skillsmod.api.reward.RewardUpdateContext;
 import net.puffish.skillsmod.api.util.Problem;
 import net.puffish.skillsmod.api.util.Result;
 import net.puffish.skillsoriginsmod.SkillsOriginsMod;
-import net.puffish.skillsoriginsmod.common.PowerRewardOperation;
+import net.puffish.skillsoriginsmod.util.PowerRewardOperation;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

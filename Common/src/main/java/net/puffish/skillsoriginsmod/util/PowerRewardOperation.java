@@ -1,4 +1,4 @@
-package net.puffish.skillsoriginsmod.common;
+package net.puffish.skillsoriginsmod.util;
 
 import net.puffish.skillsmod.api.json.JsonElement;
 import net.puffish.skillsmod.api.util.Problem;
