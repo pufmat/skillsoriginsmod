@@ -4,7 +4,6 @@ import io.github.edwinmindcraft.apoli.api.ApoliAPI;
 import io.github.edwinmindcraft.apoli.api.component.IPowerContainer;
 import io.github.edwinmindcraft.apoli.api.power.configuration.ConfiguredPower;
 import io.github.edwinmindcraft.apoli.api.registry.ApoliDynamicRegistries;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
@@ -91,7 +90,7 @@ public class PowerReward implements Reward {
 
 	@Override
 	public void update(RewardUpdateContext context) {
-		if (context.getCount() > 0 && operation.equals(PowerRewardOperation.ADD)) {
+		if (context.getCount() > 0) {
 			unlock(context.getPlayer());
 		} else {
 			lock(context.getPlayer());
@@ -111,12 +110,9 @@ public class PowerReward implements Reward {
 
 	private void unlock(ServerPlayerEntity player) {
 		IPowerContainer.get(player).ifPresent(component -> {
-			LOGGER.info("Adding power- powerKey: "+powerKey.toString()+", Operationkey: "+operation  + ", " + source);
 			switch(operation) {
 				case ADD -> component.addPower(powerKey, source);
-				case REMOVE -> {
-					component.removePower(powerKey, source);
-				}
+				case REMOVE -> component.removePower(powerKey, source);
 			}
 			component.sync();
 		});
@@ -124,7 +120,6 @@ public class PowerReward implements Reward {
 
 	private void lock(ServerPlayerEntity player) {
 		IPowerContainer.get(player).ifPresent(component -> {
-			LOGGER.info("Removing power- powerKey: "+powerKey.toString()+", Operationkey: "+operation  + ", " + source);
 			switch(operation) {
 				case ADD -> component.removePower(powerKey, source);
 				case REMOVE -> component.addPower(powerKey, source);
@@ -132,16 +127,4 @@ public class PowerReward implements Reward {
 			component.sync();
 		});
 	}
-	private static boolean revokePower(LivingEntity entity, RegistryKey<ConfiguredPower<?, ?>> power, Identifier source) {
-		return (Boolean)IPowerContainer.get(entity).map((component) -> {
-			if (component.hasPower(power, source)) {
-				component.removePower(power, source);
-				component.sync();
-				return true;
-			} else {
-				return false;
-			}
-		}).orElse(false);
-	}
-
 }
