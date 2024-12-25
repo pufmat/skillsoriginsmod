@@ -4,7 +4,9 @@ import io.github.edwinmindcraft.apoli.api.ApoliAPI;
 import io.github.edwinmindcraft.apoli.api.component.IPowerContainer;
 import io.github.edwinmindcraft.apoli.api.power.configuration.ConfiguredPower;
 import io.github.edwinmindcraft.apoli.api.registry.ApoliDynamicRegistries;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.puffish.skillsmod.api.SkillsAPI;
 import net.puffish.skillsmod.api.json.BuiltinJson;
@@ -19,10 +21,13 @@ import net.puffish.skillsmod.api.util.Result;
 import net.puffish.skillsoriginsmod.SkillsOriginsMod;
 import net.puffish.skillsoriginsmod.common.PowerRewardOperation;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 
 public class PowerReward implements Reward {
+	private static final Logger LOGGER = LogManager.getLogger("Skills");
 	public static final Identifier ID = SkillsOriginsMod.createIdentifier("power");
 
 	private final RegistryKey<ConfiguredPower<?, ?>> powerKey;
@@ -60,11 +65,13 @@ public class PowerReward implements Reward {
 				.orElse(PowerRewardOperation.ADD);
 
 		if (problems.isEmpty()) {
+			var id = SkillsOriginsMod.createIdentifier(RandomStringUtils.random(16, "abcdefghijklmnopqrstuvwxyz0123456789"));
+			LOGGER.info("Id: "+id + ",  optOperation: " + optOperation + ", " + optPower.orElseThrow());
 			return Result.success(new PowerReward(
 					optPower.orElseThrow(),
 					optOperation,
-					SkillsOriginsMod.createIdentifier(RandomStringUtils.random(16, "abcdefghijklmnopqrstuvwxyz0123456789"))
-			));
+					id)
+			);
 		} else {
 			return Result.failure(Problem.combine(problems));
 		}
@@ -84,28 +91,57 @@ public class PowerReward implements Reward {
 
 	@Override
 	public void update(RewardUpdateContext context) {
-		IPowerContainer.get(context.getPlayer()).ifPresent(component -> {
-			if (context.getCount() < 1) return;
-			if (operation.equals(PowerRewardOperation.ADD)) {
-				component.addPower(powerKey, source);
-			} else {
-				component.removePower(powerKey, source);
-			}
-			component.sync();
-		});
+		if (context.getCount() > 0 && operation.equals(PowerRewardOperation.ADD)) {
+			unlock(context.getPlayer());
+		} else {
+			lock(context.getPlayer());
+		}
 	}
 
 	@Override
 	public void dispose(RewardDisposeContext context) {
 		context.getServer().getPlayerManager().getPlayerList().forEach(player -> {
-			IPowerContainer.get(player).ifPresent(component -> {
-				if (operation.equals(PowerRewardOperation.ADD)) {
-					component.removePower(powerKey, source);
-				} else {
-					component.addPower(powerKey, source);
-				}
-				component.sync();
-			});
+			if (operation.equals(PowerRewardOperation.ADD)) {
+				lock(player);
+			} else {
+				unlock(player);
+			}
 		});
 	}
+
+	private void unlock(ServerPlayerEntity player) {
+		IPowerContainer.get(player).ifPresent(component -> {
+			LOGGER.info("Adding power- powerKey: "+powerKey.toString()+", Operationkey: "+operation  + ", " + source);
+			switch(operation) {
+				case ADD -> component.addPower(powerKey, source);
+				case REMOVE -> {
+					component.removePower(powerKey, source);
+				}
+			}
+			component.sync();
+		});
+	}
+
+	private void lock(ServerPlayerEntity player) {
+		IPowerContainer.get(player).ifPresent(component -> {
+			LOGGER.info("Removing power- powerKey: "+powerKey.toString()+", Operationkey: "+operation  + ", " + source);
+			switch(operation) {
+				case ADD -> component.removePower(powerKey, source);
+				case REMOVE -> component.addPower(powerKey, source);
+			}
+			component.sync();
+		});
+	}
+	private static boolean revokePower(LivingEntity entity, RegistryKey<ConfiguredPower<?, ?>> power, Identifier source) {
+		return (Boolean)IPowerContainer.get(entity).map((component) -> {
+			if (component.hasPower(power, source)) {
+				component.removePower(power, source);
+				component.sync();
+				return true;
+			} else {
+				return false;
+			}
+		}).orElse(false);
+	}
+
 }
