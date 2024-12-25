@@ -1,6 +1,6 @@
 plugins {
     id("dev.architectury.loom")
-//    id("checkstyle")
+    id("checkstyle")
 }
 
 repositories {
