@@ -22,6 +22,7 @@ import net.puffish.skillsoriginsmod.util.PowerRewardOperation;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class PowerReward implements Reward {
 	public static final Identifier ID = SkillsOriginsMod.createIdentifier("power");
@@ -101,9 +102,17 @@ public class PowerReward implements Reward {
 
 	private void unlock(ServerPlayerEntity player) {
 		IPowerContainer.get(player).ifPresent(component -> {
+			List<Identifier> sources = component.getSources(powerKey);
 			switch (operation) {
 				case ADD -> component.addPower(powerKey, source);
-				case REMOVE -> component.removePower(powerKey, source);
+				case REMOVE -> {
+					if (sources.isEmpty()) {
+						return;
+					}
+					for (Identifier source : sources) {
+						component.removePower(powerKey, source);
+					}
+				}
 				default -> throw new IllegalStateException();
 			}
 			component.sync();
@@ -112,8 +121,16 @@ public class PowerReward implements Reward {
 
 	private void lock(ServerPlayerEntity player) {
 		IPowerContainer.get(player).ifPresent(component -> {
+			List<Identifier> sources = component.getSources(powerKey);
 			switch (operation) {
-				case ADD -> component.removePower(powerKey, source);
+				case ADD -> {
+					if (sources.isEmpty()) {
+						return;
+					}
+					for (Identifier source : sources) {
+						component.removePower(powerKey, source);
+					}
+				}
 				case REMOVE -> component.addPower(powerKey, source);
 				default -> throw new IllegalStateException();
 			}
