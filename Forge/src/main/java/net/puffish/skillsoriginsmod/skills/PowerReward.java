@@ -4,6 +4,7 @@ import io.github.edwinmindcraft.apoli.api.ApoliAPI;
 import io.github.edwinmindcraft.apoli.api.component.IPowerContainer;
 import io.github.edwinmindcraft.apoli.api.power.configuration.ConfiguredPower;
 import io.github.edwinmindcraft.apoli.api.registry.ApoliDynamicRegistries;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.util.Identifier;
 import net.puffish.skillsmod.api.SkillsAPI;
@@ -17,6 +18,7 @@ import net.puffish.skillsmod.api.reward.RewardUpdateContext;
 import net.puffish.skillsmod.api.util.Problem;
 import net.puffish.skillsmod.api.util.Result;
 import net.puffish.skillsoriginsmod.SkillsOriginsMod;
+import net.puffish.skillsoriginsmod.util.PowerRewardOperation;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import java.util.ArrayList;
@@ -25,10 +27,12 @@ public class PowerReward implements Reward {
 	public static final Identifier ID = SkillsOriginsMod.createIdentifier("power");
 
 	private final RegistryKey<ConfiguredPower<?, ?>> powerKey;
+	private final PowerRewardOperation operation;
 	private final Identifier source;
 
-	private PowerReward(RegistryKey<ConfiguredPower<?, ?>> powerKey, Identifier source) {
+	private PowerReward(RegistryKey<ConfiguredPower<?, ?>> powerKey, PowerRewardOperation operation, Identifier source) {
 		this.powerKey = powerKey;
+		this.operation = operation;
 		this.source = source;
 	}
 
@@ -50,9 +54,18 @@ public class PowerReward implements Reward {
 				.ifFailure(problems::add)
 				.getSuccess();
 
+		var operation = rootObject.get("operation")
+				.getSuccess()
+				.flatMap(element -> PowerRewardOperation.parse(element)
+						.ifFailure(problems::add)
+						.getSuccess()
+				)
+				.orElse(PowerRewardOperation.ADD);
+
 		if (problems.isEmpty()) {
 			return Result.success(new PowerReward(
 					optPower.orElseThrow(),
+					operation,
 					SkillsOriginsMod.createIdentifier(RandomStringUtils.random(16, "abcdefghijklmnopqrstuvwxyz0123456789"))
 			));
 		} else {
@@ -74,24 +87,38 @@ public class PowerReward implements Reward {
 
 	@Override
 	public void update(RewardUpdateContext context) {
-		IPowerContainer.get(context.getPlayer()).ifPresent(component -> {
-			if (context.getCount() > 0) {
-				component.addPower(powerKey, source);
-			} else {
-				component.removePower(powerKey, source);
+		if (context.getCount() > 0) {
+			unlock(context.getPlayer());
+		} else {
+			lock(context.getPlayer());
+		}
+	}
+
+	@Override
+	public void dispose(RewardDisposeContext context) {
+		context.getServer().getPlayerManager().getPlayerList().forEach(this::lock);
+	}
+
+	private void unlock(ServerPlayerEntity player) {
+		IPowerContainer.get(player).ifPresent(component -> {
+			switch (operation) {
+				case ADD -> component.addPower(powerKey, source);
+				case REMOVE -> component.removePower(powerKey, source);
+				default -> throw new IllegalStateException();
 			}
 			component.sync();
 		});
 	}
 
-	@Override
-	public void dispose(RewardDisposeContext context) {
-		for (var player : context.getServer().getPlayerManager().getPlayerList()) {
-			IPowerContainer.get(player).ifPresent(component -> {
-				component.removePower(powerKey, source);
-				component.sync();
-			});
-		}
+	private void lock(ServerPlayerEntity player) {
+		IPowerContainer.get(player).ifPresent(component -> {
+			switch (operation) {
+				case ADD -> component.removePower(powerKey, source);
+				case REMOVE -> component.addPower(powerKey, source);
+				default -> throw new IllegalStateException();
+			}
+			component.sync();
+		});
 	}
 
 }

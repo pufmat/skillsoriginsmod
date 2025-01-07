@@ -15,6 +15,7 @@ public class FabricMain implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		PowerReward.register();
+
 		Registry.register(
 				ApoliRegistries.POWER_FACTORY,
 				UnlockCategoryPower.ID,
