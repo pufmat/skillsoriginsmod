@@ -6,6 +6,7 @@ import io.github.apace100.calio.data.SerializableDataTypes;
 import io.github.edwinmindcraft.apoli.api.IDynamicFeatureConfiguration;
 import io.github.edwinmindcraft.apoli.api.power.factory.PowerFactory;
 import net.minecraft.entity.Entity;
+import net.minecraft.server.ServerTask;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.puffish.skillsmod.api.SkillsAPI;
@@ -22,8 +23,9 @@ public class UnlockCategoryPower extends PowerFactory<UnlockCategoryPower.Config
 	protected void onAdded(Configuration configuration, Entity entity) {
 		super.onAdded(configuration, entity);
 		if (entity instanceof ServerPlayerEntity player) {
-			SkillsAPI.getCategory(configuration.category())
-					.ifPresent(category -> category.unlock(player));
+			player.server.send(new ServerTask(0, () ->
+					SkillsAPI.getCategory(configuration.category())
+							.ifPresent(category -> category.unlock(player))));
 		}
 	}
 
@@ -31,8 +33,9 @@ public class UnlockCategoryPower extends PowerFactory<UnlockCategoryPower.Config
 	protected void onRemoved(Configuration configuration, Entity entity) {
 		super.onRemoved(configuration, entity);
 		if (entity instanceof ServerPlayerEntity player) {
-			SkillsAPI.getCategory(configuration.category())
-					.ifPresent(category -> category.lock(player));
+			player.server.send(new ServerTask(0, () ->
+					SkillsAPI.getCategory(configuration.category())
+							.ifPresent(category -> category.lock(player))));
 		}
 	}
 

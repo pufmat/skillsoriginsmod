@@ -6,6 +6,7 @@ import io.github.apace100.apoli.power.factory.PowerFactory;
 import io.github.apace100.calio.data.SerializableData;
 import io.github.apace100.calio.data.SerializableDataTypes;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.server.ServerTask;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.puffish.skillsmod.api.SkillsAPI;
@@ -33,8 +34,9 @@ public class UnlockCategoryPower extends Power {
 	public void onAdded() {
 		super.onAdded();
 		if (entity instanceof ServerPlayerEntity player) {
-			SkillsAPI.getCategory(category)
-					.ifPresent(category -> category.unlock(player));
+			player.server.send(new ServerTask(0, () ->
+					SkillsAPI.getCategory(category)
+							.ifPresent(category -> category.unlock(player))));
 		}
 	}
 
@@ -42,8 +44,9 @@ public class UnlockCategoryPower extends Power {
 	public void onRemoved() {
 		super.onRemoved();
 		if (entity instanceof ServerPlayerEntity player) {
-			SkillsAPI.getCategory(category)
-					.ifPresent(category -> category.lock(player));
+			player.server.send(new ServerTask(0, () ->
+					SkillsAPI.getCategory(category)
+							.ifPresent(category -> category.lock(player))));
 		}
 	}
 }
